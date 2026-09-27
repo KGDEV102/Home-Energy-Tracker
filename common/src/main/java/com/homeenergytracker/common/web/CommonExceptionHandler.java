@@ -1,6 +1,7 @@
 package com.homeenergytracker.common.web;
 
 import com.homeenergytracker.common.response.ErrorResponse;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -46,6 +47,30 @@ public class CommonExceptionHandler extends ResponseEntityExceptionHandler {
                 response.getBody(), headers, status
         );
     }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+            ConstraintViolationException ex,
+            WebRequest request
+    ) {
+        Map<String, String> details = new LinkedHashMap<>();
+
+        ex.getConstraintViolations().forEach(violation ->
+                details.put(
+                        violation.getPropertyPath().toString(),
+                        violation.getMessage()
+                )
+        );
+
+        return ErrorResponse.build(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_FAILED",
+                "Validation failed",
+                details,
+                request
+        );
+    }
+
     // Các lỗi unchecked (spring know and throw): JSON không hợp lệ, sai kiểu tham số, sai http method,...
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
