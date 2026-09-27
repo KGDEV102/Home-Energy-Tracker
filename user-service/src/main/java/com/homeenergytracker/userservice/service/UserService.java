@@ -31,7 +31,7 @@ public class UserService {
     }
     public UserDto updateUser(Long id, UpdateUser updateUser) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotExists());
+                .orElseThrow(UserNotExists::new);
 
         // Không coi email hiện tại của chính user là email bị trùng.
         if (updateUser.email() != null
@@ -48,12 +48,12 @@ public class UserService {
     }
     public UserDto getUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotExists());
+                .orElseThrow(UserNotExists::new);
         return userMapper.toDto(user);
     }
     public void deleteUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotExists());
+                .orElseThrow(UserNotExists::new);
         userRepository.delete(user);
     }
 
