@@ -1,0 +1,42 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: ingestion-service
+
+  http:
+    serviceclient:
+      device-service:
+        base-url: ${DEVICE_SERVICE_URL:http://localhost:8082}
+        connect-timeout: 2s
+        read-timeout: 3s
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      client-id: ingestion-service-producer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        # Maximum total time Kafka may spend sending and retrying one record.
+        delivery.timeout.ms: 30000
+        # Maximum time to wait for one broker request.
+        request.timeout.ms: 10000
+        # Prevent the scheduler from blocking too long waiting for metadata/buffer space.
+        max.block.ms: 5000
+        # Reduce network traffic without changing the event contract.
+        compression.type: lz4
+
+simulation:
+  interval-ms: 5000
+  job-initial-delay-ms: 3000
+  refresh-devices-ms: 60000
+  refresh-initial-delay-ms: 0
+
+ingestion:
+  kafka:
+    topic: energy-usage.v1
+vây
