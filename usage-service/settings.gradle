@@ -1,0 +1,6 @@
+rootProject.name = 'usage-service'
+// BỔ SUNG: đăng ký common vào cùng Gradle build
+include ':common'
+
+// BỔ SUNG: vị trí thư mục chứa build.gradle của common
+project(':common').projectDir = file('../common')

@@ -1,0 +1,65 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.homeenergytracker'
+version = '0.0.1-SNAPSHOT'
+description = 'usage-service'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':common')
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-kafka-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Unit test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Kafka integration test
+    testImplementation 'org.springframework.boot:spring-boot-starter-kafka-test'
+
+    // Controller test
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+    // Validation test
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+
+    // Chạy InfluxDB thật trong integration test
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation platform('org.testcontainers:testcontainers-bom:2.0.5')
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+    // InfluxDB OSS 2.x Java client
+    implementation 'com.influxdb:influxdb-client-java:8.0.0'
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -1,0 +1,36 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:usage-service-v1}
+      client-id: ${KAFKA_CONSUMER_CLIENT_ID:usage-service-consumer}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.homeenergytracker.usageservice.event.EnergyUsageEvent
+        spring.json.trusted.packages: com.homeenergytracker.usageservice.event
+        allow.auto.create.topics: false
+
+    listener:
+      ack-mode: record
+
+usage:
+  kafka:
+    topic: ${USAGE_KAFKA_TOPIC:energy-usage.v1}
+    dlt-topic: ${USAGE_KAFKA_DLT_TOPIC:energy-usage.v1-dlt}
+    retry-attempts: ${USAGE_KAFKA_RETRY_ATTEMPTS:2}
+    retry-interval-ms: ${USAGE_KAFKA_RETRY_INTERVAL_MS:1000}
+
+
+influxdb:
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN}
+  org: ${INFLUXDB_ORG:home-energy-tracker}
+  bucket: ${INFLUXDB_BUCKET:energy-usage}
