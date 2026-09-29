@@ -2,6 +2,7 @@ package com.homeenergytracker.userservice.service;
 
 import com.homeenergytracker.userservice.dto.UpdateUser;
 import com.homeenergytracker.userservice.dto.UserDto;
+import com.homeenergytracker.userservice.dto.UserNotificationContactResponse;
 import com.homeenergytracker.userservice.entity.User;
 import com.homeenergytracker.userservice.exception.EmailAlreadyExistsException;
 import com.homeenergytracker.userservice.exception.UserNotExists;
@@ -51,6 +52,17 @@ public class UserService {
                 .orElseThrow(UserNotExists::new);
         return userMapper.toDto(user);
     }
+
+    public UserNotificationContactResponse getNotificationContact(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(UserNotExists::new);
+
+        return new UserNotificationContactResponse(
+                user.getId(),
+                user.getEmail()
+        );
+    }
+
     public void deleteUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(UserNotExists::new);
