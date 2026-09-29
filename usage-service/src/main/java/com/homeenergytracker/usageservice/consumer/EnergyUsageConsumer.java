@@ -1,6 +1,6 @@
 package com.homeenergytracker.usageservice.consumer;
 
-import com.homeenergytracker.usageservice.event.EnergyUsageEvent;
+import com.homeenergytracker.common.event.EnergyUsageEvent;
 import com.homeenergytracker.usageservice.repository.EnergyUsageRepository;
 import com.homeenergytracker.usageservice.validation.EnergyUsageEventValidator;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

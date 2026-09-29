@@ -14,8 +14,8 @@ spring:
         spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
         spring.json.use.type.headers: false
-        spring.json.value.default.type: com.homeenergytracker.usageservice.event.EnergyUsageEvent
-        spring.json.trusted.packages: com.homeenergytracker.usageservice.event
+        spring.json.value.default.type: com.homeenergytracker.common.event.EnergyUsageEvent
+        spring.json.trusted.packages: com.homeenergytracker.common.event
         allow.auto.create.topics: false
 
     listener:

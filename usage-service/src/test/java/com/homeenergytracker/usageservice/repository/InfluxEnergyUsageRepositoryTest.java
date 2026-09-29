@@ -1,7 +1,7 @@
 package com.homeenergytracker.usageservice.repository;
 
-import com.homeenergytracker.usageservice.event.EnergyUsageEvent;
-import com.homeenergytracker.usageservice.event.ReadingSource;
+import com.homeenergytracker.common.event.EnergyUsageEvent;
+import com.homeenergytracker.common.event.ReadingSource;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;

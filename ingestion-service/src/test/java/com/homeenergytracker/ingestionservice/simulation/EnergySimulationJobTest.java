@@ -2,8 +2,8 @@ package com.homeenergytracker.ingestionservice.simulation;
 
 import com.homeenergytracker.ingestionservice.client.DeviceServiceClient;
 import com.homeenergytracker.ingestionservice.dto.DeviceSimulationTargetResponse;
-import com.homeenergytracker.ingestionservice.event.EnergyUsageEvent;
-import com.homeenergytracker.ingestionservice.event.ReadingSource;
+import com.homeenergytracker.common.event.EnergyUsageEvent;
+import com.homeenergytracker.common.event.ReadingSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

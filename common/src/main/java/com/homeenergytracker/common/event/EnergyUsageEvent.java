@@ -1,4 +1,4 @@
-package com.homeenergytracker.usageservice.event;
+package com.homeenergytracker.common.event;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,5 +16,4 @@ public record EnergyUsageEvent(
         Instant receivedAt,
         ReadingSource source
 ) {
-
 }

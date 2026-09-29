@@ -1,7 +1,7 @@
 package com.homeenergytracker.usageservice.integration.kafka;
 
-import com.homeenergytracker.usageservice.event.EnergyUsageEvent;
-import com.homeenergytracker.usageservice.event.ReadingSource;
+import com.homeenergytracker.common.event.EnergyUsageEvent;
+import com.homeenergytracker.common.event.ReadingSource;
 import com.homeenergytracker.usageservice.repository.EnergyUsageRepository;
 import com.homeenergytracker.usageservice.validation.EnergyUsageEventValidator;
 import org.apache.kafka.clients.consumer.Consumer;

@@ -82,7 +82,7 @@ public class KafkaConsumerConfig {
          * Không ghi tên Java class vào Kafka header.
          *
          * Ví dụ tránh tạo header phụ thuộc vào:
-         * com.homeenergytracker.usageservice.event.EnergyUsageEvent
+         * com.homeenergytracker.common.event.EnergyUsageEvent
          *
          * Nhờ đó message ít phụ thuộc vào package Java của service.
          */

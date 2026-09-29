@@ -2,8 +2,8 @@ package com.homeenergytracker.ingestionservice.integration;
 
 import com.homeenergytracker.ingestionservice.client.DeviceServiceClient;
 import com.homeenergytracker.ingestionservice.dto.DeviceSimulationTargetResponse;
-import com.homeenergytracker.ingestionservice.event.EnergyUsageEvent;
-import com.homeenergytracker.ingestionservice.event.ReadingSource;
+import com.homeenergytracker.common.event.EnergyUsageEvent;
+import com.homeenergytracker.common.event.ReadingSource;
 import com.homeenergytracker.ingestionservice.simulation.EnergySimulationJob;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -96,7 +96,7 @@ public class EnergySimulationKafkaInteractionTest {
                 );
 
         valueDeserializer.addTrustedPackages(
-                "com.homeenergytracker.ingestionservice.event"
+                "com.homeenergytracker.common.event"
         );
 
         consumer = new DefaultKafkaConsumerFactory<>(

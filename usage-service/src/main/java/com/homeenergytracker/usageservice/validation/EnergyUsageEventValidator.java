@@ -1,6 +1,6 @@
 package com.homeenergytracker.usageservice.validation;
 
-import com.homeenergytracker.usageservice.event.EnergyUsageEvent;
+import com.homeenergytracker.common.event.EnergyUsageEvent;
 import com.homeenergytracker.usageservice.exception.InvalidEnergyUsageEventException;
 import org.springframework.stereotype.Component;
 
