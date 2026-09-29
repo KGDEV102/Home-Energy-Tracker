@@ -105,6 +105,26 @@ public class Notification {
     @Column(name = "read_at")
     private Instant readAt;
 
+    @Column(name = "recipient_email", length = 255)
+    private String recipientEmail;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "delivery_status",
+            nullable = false,
+            length = 20
+    )
+    private DeliveryStatus deliveryStatus = DeliveryStatus.PENDING;
+
+    @Column(name = "delivery_attempts", nullable = false)
+    private int deliveryAttempts;
+
+    @Column(name = "sent_at")
+    private Instant sentAt;
+
+    @Column(name = "last_delivery_error", columnDefinition = "TEXT")
+    private String lastDeliveryError;
+
     @PrePersist
     void prePersist() {
         createdAt = Instant.now();
