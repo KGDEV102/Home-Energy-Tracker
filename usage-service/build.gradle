@@ -58,6 +58,8 @@ dependencies {
     // InfluxDB OSS 2.x Java client
     implementation 'com.influxdb:influxdb-client-java:8.0.0'
 
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
 }
 
 tasks.named('test') {

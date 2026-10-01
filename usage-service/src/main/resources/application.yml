@@ -21,6 +21,13 @@ spring:
     listener:
       ack-mode: record
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI}
+
+
 usage:
   kafka:
     topic: ${USAGE_KAFKA_TOPIC:energy-usage.v1}
