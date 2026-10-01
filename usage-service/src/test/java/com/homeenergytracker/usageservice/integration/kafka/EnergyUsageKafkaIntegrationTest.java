@@ -42,7 +42,8 @@ import static org.mockito.Mockito.verify;
         "usage.kafka.dlt-topic=energy-usage.v1-dlt-test",
         "usage.kafka.retry-attempts=2",
         "usage.kafka.retry-interval-ms=10",
-        "influxdb.token=test-token"
+        "influxdb.token=test-token",
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost/test-issuer"
 })
 @EmbeddedKafka(
         partitions = 1,
