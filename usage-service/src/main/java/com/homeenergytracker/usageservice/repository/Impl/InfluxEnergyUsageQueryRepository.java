@@ -98,6 +98,7 @@ public class InfluxEnergyUsageQueryRepository implements EnergyUsageQueryReposit
                 |> filter(fn: (r) =>
                     r["_field"] == "average_power_w"
                 )
+                |> group(columns: ["device_uid"])
                 |> aggregateWindow(
                     every: 1m,
                     fn: mean,
@@ -294,6 +295,7 @@ public class InfluxEnergyUsageQueryRepository implements EnergyUsageQueryReposit
                     |> filter(fn: (r) =>
                         r["_field"] == "interval_energy_wh"
                     )
+                    |> group()
                     |> aggregateWindow(
                         every: %s,
                         fn: sum,
@@ -305,6 +307,7 @@ public class InfluxEnergyUsageQueryRepository implements EnergyUsageQueryReposit
                     |> filter(fn: (r) =>
                         r["_field"] == "average_power_w"
                     )
+                    |> group()
                     |> aggregateWindow(
                         every: %s,
                         fn: mean,

@@ -1,0 +1,12 @@
+/.env
+
+# Build output
+**/build/
+
+# IDE metadata
+.idea/
+*.iml
+
+# JVM crash logs
+**/hs_err_pid*.log
+**/replay_pid*.log

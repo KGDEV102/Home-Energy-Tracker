@@ -3,7 +3,7 @@ package com.homeenergytracker.usageservice.controller;
 import com.homeenergytracker.usageservice.dto.DeviceUsageResponse;
 import com.homeenergytracker.usageservice.dto.UsageDataPointResponse;
 import com.homeenergytracker.usageservice.dto.UsageSummaryResponse;
-import com.homeenergytracker.usageservice.security.JwtUserIdExtractor;
+import com.homeenergytracker.common.security.JwtUserIdExtractor;
 import com.homeenergytracker.usageservice.service.EnergyUsageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,7 +22,6 @@ import java.util.UUID;
 public class UsageController {
 
     private final EnergyUsageService energyUsageService;
-    private final JwtUserIdExtractor jwtUserIdExtractor;
 
     @GetMapping("/summary")
     public SuccessResponse<UsageSummaryResponse> getSummary(
@@ -36,7 +35,7 @@ public class UsageController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Instant to
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
 
         UsageSummaryResponse response =
                 energyUsageService.getSummary(
@@ -59,7 +58,7 @@ public class UsageController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Instant to
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
 
         List<DeviceUsageResponse> response =
                 energyUsageService.getUsageByDevice(
@@ -88,7 +87,7 @@ public class UsageController {
             @RequestParam(defaultValue = "1h")
             String window
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
 
         List<UsageDataPointResponse> response =
                 energyUsageService.getDeviceTimeSeries(

@@ -119,6 +119,18 @@ public class Notification {
     @Column(name = "delivery_attempts", nullable = false)
     private int deliveryAttempts;
 
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+
+    @Column(name = "claimed_at")
+    private Instant claimedAt;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
+    @Column(name = "claimed_by", length = 100)
+    private String claimedBy;
+
     @Column(name = "sent_at")
     private Instant sentAt;
 

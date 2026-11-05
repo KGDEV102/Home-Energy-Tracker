@@ -19,8 +19,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -46,7 +48,7 @@ import static org.awaitility.Awaitility.await;
         "usage.kafka.dlt-topic=energy-usage.v1-flow-test-dlt",
         "usage.kafka.retry-attempts=2",
         "usage.kafka.retry-interval-ms=10",
-        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost/test-issuer"
+        "internal.usage-service-token=test-internal-token"
 })
 @EmbeddedKafka(
         partitions = 1,
@@ -57,6 +59,9 @@ import static org.awaitility.Awaitility.await;
         bootstrapServersProperty = "spring.kafka.bootstrap-servers"
 )
 class EnergyUsageFlowIntegrationTest {
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     private static final String TOPIC = "energy-usage.v1-flow-test";
     private static final String DLT_TOPIC = "energy-usage.v1-flow-test-dlt";
@@ -109,12 +114,12 @@ class EnergyUsageFlowIntegrationTest {
                 .atMost(Duration.ofSeconds(10))
                 .pollInterval(Duration.ofMillis(250))
                 .untilAsserted(() -> {
-                    List<FluxRecord> records = queryEventIdRecords(event.deviceUid());
+                    List<FluxRecord> records = queryEventRecords(event.deviceUid());
 
                     assertThat(records)
                             .singleElement()
                             .satisfies(record -> {
-                                assertThat(record.getValue())
+                                assertThat(record.getValueByKey("event_id"))
                                         .isEqualTo(event.eventId().toString());
                                 assertThat(record.getTime())
                                         .isEqualTo(event.measuredAt());
@@ -136,7 +141,7 @@ class EnergyUsageFlowIntegrationTest {
         assertThat(dltRecord.key()).isEqualTo(kafkaKey);
         assertThat(new String(dltRecord.value(), StandardCharsets.UTF_8))
                 .contains(event.eventId().toString());
-        assertThat(queryEventIdRecords(event.deviceUid())).isEmpty();
+        assertThat(queryEventRecords(event.deviceUid())).isEmpty();
     }
 
     private void send(String kafkaKey, EnergyUsageEvent event) throws Exception {
@@ -144,13 +149,13 @@ class EnergyUsageFlowIntegrationTest {
                 .get(10, TimeUnit.SECONDS);
     }
 
-    private List<FluxRecord> queryEventIdRecords(UUID deviceUid) {
+    private List<FluxRecord> queryEventRecords(UUID deviceUid) {
         String query = """
                 from(bucket: "%s")
                   |> range(start: 0)
                   |> filter(fn: (r) => r._measurement == "energy_usage")
                   |> filter(fn: (r) => r.device_uid == "%s")
-                  |> filter(fn: (r) => r._field == "event_id")
+                  |> filter(fn: (r) => r._field == "interval_energy_wh")
                 """.formatted(BUCKET, deviceUid);
 
         return influxDBClient.getQueryApi()

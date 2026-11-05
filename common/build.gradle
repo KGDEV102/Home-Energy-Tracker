@@ -25,6 +25,7 @@ dependencies {
 
     // CommonExceptionHandler sử dụng Spring MVC
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.security:spring-security-oauth2-jose'
     implementation 'jakarta.validation:jakarta.validation-api'
 
     // @Slf4j

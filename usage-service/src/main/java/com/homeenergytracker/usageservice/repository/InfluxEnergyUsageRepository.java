@@ -43,7 +43,7 @@ public class InfluxEnergyUsageRepository implements EnergyUsageRepository {
                         "source",
                         event.source().name()
                 )
-                .addField(
+                .addTag(
                         "event_id",
                         event.eventId().toString()
                 )

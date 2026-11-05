@@ -32,7 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(properties = {
         "simulation.refresh-initial-delay-ms=3600000",
-        "simulation.job-initial-delay-ms=3600000"
+        "simulation.job-initial-delay-ms=3600000",
+        "device-service.internal-token=test-internal-token"
 })
 @DirtiesContext
 class DeviceServiceClientIntegrationTest {
@@ -62,6 +63,9 @@ class DeviceServiceClientIntegrationTest {
             new AtomicReference<>();
 
     private static final AtomicReference<String> LAST_PATH =
+            new AtomicReference<>();
+
+    private static final AtomicReference<String> LAST_SERVICE_TOKEN =
             new AtomicReference<>();
 
     private static final AtomicInteger RESPONSE_STATUS =
@@ -94,6 +98,7 @@ class DeviceServiceClientIntegrationTest {
     void resetHttpResponse() {
         LAST_METHOD.set(null);
         LAST_PATH.set(null);
+        LAST_SERVICE_TOKEN.set(null);
         RESPONSE_STATUS.set(200);
         RESPONSE_BODY.set(SUCCESS_BODY);
     }
@@ -106,10 +111,11 @@ class DeviceServiceClientIntegrationTest {
     @Test
     void getSimulationTargets_shouldCallExpectedEndpointAndMapResponse() {
         SuccessResponse<List<DeviceSimulationTargetResponse>> response =
-                deviceServiceClient.getSimulationTargets();
+                deviceServiceClient.getSimulationTargets("test-internal-token");
 
         assertEquals("GET", LAST_METHOD.get());
         assertEquals(EXPECTED_PATH, LAST_PATH.get());
+        assertEquals("test-internal-token", LAST_SERVICE_TOKEN.get());
 
         assertNotNull(response);
         assertTrue(response.success());
@@ -137,7 +143,7 @@ class DeviceServiceClientIntegrationTest {
 
         assertThrows(
                 RestClientResponseException.class,
-                deviceServiceClient::getSimulationTargets
+                () -> deviceServiceClient.getSimulationTargets("test-internal-token")
         );
 
         assertEquals("GET", LAST_METHOD.get());
@@ -173,6 +179,9 @@ class DeviceServiceClientIntegrationTest {
             throws IOException {
         LAST_METHOD.set(exchange.getRequestMethod());
         LAST_PATH.set(exchange.getRequestURI().getPath());
+        LAST_SERVICE_TOKEN.set(
+                exchange.getRequestHeaders().getFirst("X-Internal-Service-Token")
+        );
 
         byte[] body = RESPONSE_BODY.get()
                 .getBytes(StandardCharsets.UTF_8);

@@ -42,5 +42,33 @@ public class UserExceptionHandler {
         );
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException ex,
+            WebRequest request
+    ) {
+        return com.homeenergytracker.common.response.ErrorResponse.build(
+                HttpStatus.UNAUTHORIZED,
+                ex.getCode(),
+                ex.getMessage(),
+                Map.of(),
+                request
+        );
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(
+            InvalidRefreshTokenException ex,
+            WebRequest request
+    ) {
+        return com.homeenergytracker.common.response.ErrorResponse.build(
+                HttpStatus.UNAUTHORIZED,
+                ex.getCode(),
+                ex.getMessage(),
+                Map.of(),
+                request
+        );
+    }
+
 
 }

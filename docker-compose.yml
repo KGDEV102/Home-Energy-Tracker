@@ -1,8 +1,287 @@
+name: home-energy-tracker
+
+x-service-build: &service-build
+  context: .
+  dockerfile: Dockerfile
+
+x-service-env: &service-env
+  JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?Set JWT_PUBLIC_KEY_BASE64 in .env}
+  OPENAPI_ENABLED: ${OPENAPI_ENABLED:-true}
+  SWAGGER_UI_ENABLED: ${SWAGGER_UI_ENABLED:-true}
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-home_energy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_MULTIPLE_DATABASES: user_service,device_service,notification_service
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.9.1
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: CONTROLLER://:9093,PLAINTEXT://:9092,PLAINTEXT_HOST://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:${KAFKA_EXTERNAL_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-9094}:9094"
+    volumes:
+      - kafka-data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  kafka-init:
+    image: apache/kafka:3.9.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-ec"]
+    command: >-
+      kafka-topics.sh --bootstrap-server kafka:9092
+      --create --if-not-exists --topic energy-usage.v1 --partitions 3 --replication-factor 1 &&
+      kafka-topics.sh --bootstrap-server kafka:9092
+      --create --if-not-exists --topic energy-usage.v1-dlt --partitions 3 --replication-factor 1
+    restart: "no"
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME:-home_energy}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:?Set INFLUXDB_PASSWORD in .env}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-home-energy-tracker}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-energy-usage}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:?Set INFLUXDB_TOKEN in .env}
+    ports:
+      - "${INFLUXDB_PORT:-8086}:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://localhost:8086"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
   mailpit:
     image: axllent/mailpit:v1.27.4
-    container_name: home-energy-mailpit
     restart: unless-stopped
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "${MAIL_SMTP_PORT:-1025}:1025"
+      - "${MAIL_UI_PORT:-8025}:8025"
+
+  user-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: user-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/user_service
+      DB_USERNAME: ${POSTGRES_USER:-home_energy}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      JWT_PRIVATE_KEY_BASE64: ${JWT_PRIVATE_KEY_BASE64:?Set JWT_PRIVATE_KEY_BASE64 in .env}
+      USER_SERVICE_INTERNAL_TOKEN: ${USER_SERVICE_INTERNAL_TOKEN:?Set USER_SERVICE_INTERNAL_TOKEN in .env}
+      AUTH_COOKIE_SECURE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${USER_SERVICE_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  device-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: device-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/device_service
+      DB_USERNAME: ${POSTGRES_USER:-home_energy}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DEVICE_SERVICE_INTERNAL_TOKEN: ${DEVICE_SERVICE_INTERNAL_TOKEN:?Set DEVICE_SERVICE_INTERNAL_TOKEN in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${DEVICE_SERVICE_PORT:-8082}:8082"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  ingestion-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: ingestion-service
+    restart: unless-stopped
+    environment:
+      DEVICE_SERVICE_URL: http://device-service:8082
+      DEVICE_SERVICE_INTERNAL_TOKEN: ${DEVICE_SERVICE_INTERNAL_TOKEN:?Set DEVICE_SERVICE_INTERNAL_TOKEN in .env}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      device-service:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    ports:
+      - "${INGESTION_SERVICE_PORT:-8083}:8083"
+
+  usage-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: usage-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:?Set INFLUXDB_TOKEN in .env}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-home-energy-tracker}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-energy-usage}
+      USAGE_SERVICE_INTERNAL_TOKEN: ${USAGE_SERVICE_INTERNAL_TOKEN:?Set USAGE_SERVICE_INTERNAL_TOKEN in .env}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      influxdb:
+        condition: service_healthy
+    ports:
+      - "${USAGE_SERVICE_PORT:-8084}:8084"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8084/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  notification-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: notification-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/notification_service
+      DB_USERNAME: ${POSTGRES_USER:-home_energy}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      USER_SERVICE_URL: http://user-service:8081
+      USER_SERVICE_INTERNAL_TOKEN: ${USER_SERVICE_INTERNAL_TOKEN:?Set USER_SERVICE_INTERNAL_TOKEN in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+      user-service:
+        condition: service_healthy
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-8085}:8085"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8085/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  insight-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: insight-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      USAGE_SERVICE_URL: http://usage-service:8084
+      USAGE_SERVICE_INTERNAL_TOKEN: ${USAGE_SERVICE_INTERNAL_TOKEN:?Set USAGE_SERVICE_INTERNAL_TOKEN in .env}
+      GROQ_API_KEY: ${GROQ_API_KEY:?Set GROQ_API_KEY in .env}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+    depends_on:
+      usage-service:
+        condition: service_healthy
+    ports:
+      - "${INSIGHT_SERVICE_PORT:-8087}:8086"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8086/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  api-gateway:
+    build:
+      <<: *service-build
+      args:
+        SERVICE_DIR: api-gateway
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      USER_SERVICE_URL: http://user-service:8081
+      DEVICE_SERVICE_URL: http://device-service:8082
+      USAGE_SERVICE_URL: http://usage-service:8084
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+      INSIGHT_SERVICE_URL: http://insight-service:8086
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    depends_on:
+      user-service:
+        condition: service_healthy
+      device-service:
+        condition: service_healthy
+      usage-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      insight-service:
+        condition: service_healthy
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+  kafka-data:
+  influxdb-data:
+  influxdb-config:

@@ -1,6 +1,6 @@
 package com.homeenergytracker.ingestionservice.simulation;
 
-import com.homeenergytracker.ingestionservice.client.DeviceServiceClient;
+import com.homeenergytracker.ingestionservice.client.DeviceSimulationTargetGateway;
 import com.homeenergytracker.ingestionservice.dto.DeviceSimulationTargetResponse;
 import com.homeenergytracker.common.event.EnergyUsageEvent;
 import com.homeenergytracker.common.event.ReadingSource;
@@ -16,6 +16,7 @@ import org.springframework.kafka.support.SendResult;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -32,7 +33,7 @@ public class EnergySimulationJobTest {
             UUID.fromString("89fe1560-9507-4a5b-a1dc-37de87e9b50b");
 
     @Mock
-    private DeviceServiceClient deviceServiceClient;
+    private DeviceSimulationTargetGateway deviceTargetGateway;
 
     @Mock
     private KafkaTemplate<String, EnergyUsageEvent> kafkaTemplate;
@@ -42,7 +43,7 @@ public class EnergySimulationJobTest {
     @BeforeEach
     void setUp() {
         job = new EnergySimulationJob(
-                deviceServiceClient,
+                deviceTargetGateway,
                 kafkaTemplate,
                 TOPIC,
                 INTERVAL_MILLIS
@@ -77,8 +78,8 @@ public class EnergySimulationJobTest {
         DeviceSimulationTargetResponse device =
                 createDevice(DEVICE_UID, new BigDecimal("1000"));
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(List.of(device)));
         mockSuccessfulKafkaSend();
 
         // Act
@@ -97,13 +98,9 @@ public class EnergySimulationJobTest {
         // Arrange: lần refresh đầu tiên thành công
         DeviceSimulationTargetResponse device =
                 createDevice(DEVICE_UID, new BigDecimal("1000"));
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)))
-                .thenReturn(new com.homeenergytracker.common.response.SuccessResponse<>(
-                        false,
-                        null,
-                        "Invalid response"
-                ));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(List.of(device)))
+                .thenReturn(Optional.empty());
         mockSuccessfulKafkaSend();
         // Act: lưu danh sách hợp lệ
         job.refreshDevices();
@@ -127,9 +124,9 @@ public class EnergySimulationJobTest {
         DeviceSimulationTargetResponse device =
                 createDevice(DEVICE_UID, new BigDecimal("1000"));
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)))
-                .thenThrow(new RuntimeException("device-service timeout"));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(List.of(device)))
+                .thenReturn(Optional.empty());
         mockSuccessfulKafkaSend();
         // Act
         job.refreshDevices();
@@ -161,8 +158,8 @@ public class EnergySimulationJobTest {
                 createDevice(UUID.randomUUID(), new BigDecimal("-100"))
         );
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(devices));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(devices));
 
         // Act
         job.refreshDevices();
@@ -195,8 +192,8 @@ public class EnergySimulationJobTest {
                 )
         );
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(devices));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(devices));
 
         job.refreshDevices();
         assertDoesNotThrow(job::simulate);
@@ -212,8 +209,8 @@ public class EnergySimulationJobTest {
         DeviceSimulationTargetResponse device =
                 createDevice(DEVICE_UID, ratedPowerW);
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(List.of(device)));
 
         mockSuccessfulKafkaSend();
 
@@ -275,8 +272,8 @@ public class EnergySimulationJobTest {
                 createDevice(UUID.randomUUID(), BigDecimal.ZERO)
         );
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(devices));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(devices));
 
         mockSuccessfulKafkaSend();
 
@@ -298,8 +295,8 @@ public class EnergySimulationJobTest {
         DeviceSimulationTargetResponse device =
                 createDevice(DEVICE_UID, new BigDecimal("1000"));
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(List.of(device)));
 
         CompletableFuture<SendResult<String, EnergyUsageEvent>>
                 failedFuture = new CompletableFuture<>();
@@ -332,8 +329,8 @@ public class EnergySimulationJobTest {
         DeviceSimulationTargetResponse device =
                 createDevice(DEVICE_UID, new BigDecimal("1000"));
 
-        when(deviceServiceClient.getSimulationTargets())
-                .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)));
+        when(deviceTargetGateway.loadTargets())
+                .thenReturn(Optional.of(List.of(device)));
 
         when(kafkaTemplate.send(
                 anyString(),

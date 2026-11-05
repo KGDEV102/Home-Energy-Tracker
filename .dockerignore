@@ -1,0 +1,10 @@
+.git
+.gradle
+.idea
+**/.gradle
+**/build
+**/.env
+.env
+*.log
+hs_err_pid*
+replay_pid*

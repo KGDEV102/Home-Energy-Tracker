@@ -18,6 +18,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -43,7 +44,7 @@ import static org.mockito.Mockito.verify;
         "usage.kafka.retry-attempts=2",
         "usage.kafka.retry-interval-ms=10",
         "influxdb.token=test-token",
-        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost/test-issuer"
+        "internal.usage-service-token=test-internal-token"
 })
 @EmbeddedKafka(
         partitions = 1,
@@ -54,6 +55,9 @@ import static org.mockito.Mockito.verify;
         bootstrapServersProperty = "spring.kafka.bootstrap-servers"
 )
 class EnergyUsageKafkaIntegrationTest {
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     private static final String TOPIC = "energy-usage.v1-test";
     private static final String DLT_TOPIC = "energy-usage.v1-dlt-test";

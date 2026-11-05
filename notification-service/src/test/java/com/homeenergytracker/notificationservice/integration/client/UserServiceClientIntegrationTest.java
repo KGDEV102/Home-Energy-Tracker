@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -30,6 +31,7 @@ class UserServiceClientIntegrationTest {
     private static final String BASE_URL =
             "http://user-service.test";
     private static final Long USER_ID = 1L;
+    private static final String INTERNAL_TOKEN = "test-internal-token";
 
     private MockRestServiceServer server;
     private UserServiceClient client;
@@ -65,6 +67,7 @@ class UserServiceClientIntegrationTest {
                                 + "/internal/v1/users/1/notification-contact"
                 ))
                 .andExpect(method(HttpMethod.GET))
+                .andExpect(header("X-Internal-Token", INTERNAL_TOKEN))
                 .andRespond(withSuccess(
                         """
                         {
@@ -80,7 +83,7 @@ class UserServiceClientIntegrationTest {
                 ));
 
         SuccessResponse<UserNotificationContactResponse> response =
-                client.getNotificationContact(USER_ID);
+                client.getNotificationContact(USER_ID, INTERNAL_TOKEN);
 
         assertTrue(response.success());
         assertEquals(USER_ID, response.data().userId());
@@ -99,7 +102,7 @@ class UserServiceClientIntegrationTest {
 
         assertThrows(
                 HttpClientErrorException.NotFound.class,
-                () -> client.getNotificationContact(USER_ID)
+                () -> client.getNotificationContact(USER_ID, INTERNAL_TOKEN)
         );
     }
 
@@ -114,7 +117,7 @@ class UserServiceClientIntegrationTest {
 
         assertThrows(
                 HttpServerErrorException.InternalServerError.class,
-                () -> client.getNotificationContact(USER_ID)
+                () -> client.getNotificationContact(USER_ID, INTERNAL_TOKEN)
         );
     }
 
@@ -132,7 +135,7 @@ class UserServiceClientIntegrationTest {
 
         assertThrows(
                 RestClientException.class,
-                () -> client.getNotificationContact(USER_ID)
+                () -> client.getNotificationContact(USER_ID, INTERNAL_TOKEN)
         );
     }
 }

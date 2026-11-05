@@ -6,7 +6,6 @@ import com.homeenergytracker.notificationservice.entity.DeliveryStatus;
 import com.homeenergytracker.notificationservice.entity.Notification;
 import com.homeenergytracker.notificationservice.entity.NotificationRule;
 import com.homeenergytracker.notificationservice.entity.NotificationType;
-import com.homeenergytracker.notificationservice.event.NotificationCreatedEvent;
 import com.homeenergytracker.notificationservice.repository.NotificationRepository;
 import com.homeenergytracker.notificationservice.repository.NotificationRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -43,17 +41,13 @@ public class NotificationEvaluationServiceTest  {
     @Mock
     private NotificationRepository notificationRepository;
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
-
     private NotificationEvaluationService service;
 
     @BeforeEach
     void setUp() {
         service = new NotificationEvaluationService(
                 ruleRepository,
-                notificationRepository,
-                eventPublisher
+                notificationRepository
         );
     }
     private NotificationRule powerThresholdRule(String threshold) {
@@ -148,21 +142,12 @@ public class NotificationEvaluationServiceTest  {
         );
 
         assertEquals(MEASURED_AT, savedNotification.getMeasuredAt());
+        assertNotNull(savedNotification.getNextAttemptAt());
 
         // Cooldown phải được bắt đầu
         assertNotNull(rule.getLastTriggeredAt());
 
         // Event gửi mail phải được publish
-        ArgumentCaptor<NotificationCreatedEvent> eventCaptor =
-                ArgumentCaptor.forClass(NotificationCreatedEvent.class);
-
-        verify(eventPublisher)
-                .publishEvent(eventCaptor.capture());
-
-        assertEquals(
-                100L,
-                eventCaptor.getValue().notificationId()
-        );
     }
     @Test
     void shouldNotCreateNotificationWhenPowerEqualsThreshold() {
@@ -183,9 +168,6 @@ public class NotificationEvaluationServiceTest  {
         // Assert
         verify(notificationRepository, never())
                 .save(any(Notification.class));
-
-        verify(eventPublisher, never())
-                .publishEvent(any(NotificationCreatedEvent.class));
 
         assertNull(rule.getLastTriggeredAt());
     }
@@ -215,9 +197,6 @@ public class NotificationEvaluationServiceTest  {
         verify(notificationRepository, never())
                 .save(any(Notification.class));
 
-        verify(eventPublisher, never())
-                .publishEvent(any(NotificationCreatedEvent.class));
-
         assertNull(rule.getLastTriggeredAt());
     }
 
@@ -244,8 +223,6 @@ public class NotificationEvaluationServiceTest  {
         verify(notificationRepository, never())
                 .save(any(Notification.class));
 
-        verify(eventPublisher, never())
-                .publishEvent(any(NotificationCreatedEvent.class));
     }
 
     @Test
@@ -279,7 +256,6 @@ public class NotificationEvaluationServiceTest  {
         service.evaluate(event);
 
         verify(notificationRepository).save(any(Notification.class));
-        verify(eventPublisher).publishEvent(any(NotificationCreatedEvent.class));
 
         assertTrue(rule.getLastTriggeredAt().isAfter(previousTriggeredAt));
     }
@@ -300,7 +276,6 @@ public class NotificationEvaluationServiceTest  {
         service.evaluate(event);
 
         verifyNoInteractions(notificationRepository);
-        verifyNoInteractions(eventPublisher);
         assertNull(rule.getLastTriggeredAt());
     }
 
@@ -327,7 +302,6 @@ public class NotificationEvaluationServiceTest  {
         assertEquals("eventId is required", exception.getMessage());
         verifyNoInteractions(ruleRepository);
         verifyNoInteractions(notificationRepository);
-        verifyNoInteractions(eventPublisher);
     }
 
 

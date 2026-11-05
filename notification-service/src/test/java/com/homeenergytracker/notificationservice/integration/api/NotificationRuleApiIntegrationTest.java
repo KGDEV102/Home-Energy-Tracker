@@ -35,7 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
-        "spring.kafka.listener.auto-startup=false"
+        "spring.kafka.listener.auto-startup=false",
+        "internal.user-service-token=test-internal-token"
 })
 @AutoConfigureMockMvc
 public class NotificationRuleApiIntegrationTest {

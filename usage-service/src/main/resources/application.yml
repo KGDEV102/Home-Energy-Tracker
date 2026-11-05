@@ -1,4 +1,9 @@
+server:
+  port: ${SERVER_PORT:8084}
+
 spring:
+  config:
+    import: optional:file:usage-service/.env[.properties],optional:file:.env[.properties]
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
     consumer:
@@ -21,13 +26,6 @@ spring:
     listener:
       ack-mode: record
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${JWT_ISSUER_URI}
-
-
 usage:
   kafka:
     topic: ${USAGE_KAFKA_TOPIC:energy-usage.v1}
@@ -41,3 +39,18 @@ influxdb:
   token: ${INFLUXDB_TOKEN}
   org: ${INFLUXDB_ORG:home-energy-tracker}
   bucket: ${INFLUXDB_BUCKET:energy-usage}
+
+jwt:
+  # Base64 DER X.509 public key shared with user-service.
+  public-key: ${JWT_PUBLIC_KEY_BASE64}
+
+internal:
+  usage-service-token: ${USAGE_SERVICE_INTERNAL_TOKEN}
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+  paths-to-match: /api/v1/**

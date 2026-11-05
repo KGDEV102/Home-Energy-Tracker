@@ -2,6 +2,8 @@ server:
   port: ${SERVER_PORT:8083}
 
 spring:
+  config:
+    import: optional:file:ingestion-service/.env[.properties],optional:file:.env[.properties]
   application:
     name: ingestion-service
 
@@ -30,6 +32,12 @@ spring:
         # Reduce network traffic without changing the event contract.
         compression.type: lz4
 
+  task:
+    scheduling:
+      pool:
+        size: ${SCHEDULING_POOL_SIZE:2}
+      thread-name-prefix: ingestion-scheduler-
+
 simulation:
   interval-ms: 5000
   job-initial-delay-ms: 3000
@@ -39,4 +47,23 @@ simulation:
 ingestion:
   kafka:
     topic: energy-usage.v1
-vây
+
+device-service:
+  internal-token: ${DEVICE_SERVICE_INTERNAL_TOKEN}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      deviceService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: ${DEVICE_SERVICE_CB_WINDOW_SIZE:10}
+        minimum-number-of-calls: ${DEVICE_SERVICE_CB_MIN_CALLS:5}
+        failure-rate-threshold: ${DEVICE_SERVICE_CB_FAILURE_RATE:50}
+        wait-duration-in-open-state: ${DEVICE_SERVICE_CB_OPEN_WAIT:30s}
+        permitted-number-of-calls-in-half-open-state: ${DEVICE_SERVICE_CB_HALF_OPEN_CALLS:2}
+        slow-call-duration-threshold: ${DEVICE_SERVICE_CB_SLOW_DURATION:2s}
+        slow-call-rate-threshold: ${DEVICE_SERVICE_CB_SLOW_RATE:50}
+        record-exceptions:
+          - com.homeenergytracker.ingestionservice.exception.DeviceServiceUnavailableException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException

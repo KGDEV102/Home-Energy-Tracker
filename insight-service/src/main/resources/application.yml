@@ -1,0 +1,80 @@
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  application:
+    name: insight-service
+
+  config:
+    import: optional:file:insight-service/.env[.properties],optional:file:.env[.properties]
+
+  http:
+    serviceclient:
+      usage-service:
+        base-url: ${USAGE_SERVICE_URL:http://localhost:8084}
+        connect-timeout: 2s
+        read-timeout: 5s
+
+  ai:
+    retry:
+      max-attempts: ${AI_RETRY_MAX_ATTEMPTS:2}
+      backoff:
+        initial-interval: ${AI_RETRY_INITIAL_INTERVAL:1s}
+
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: ${GROQ_BASE_URL:https://api.groq.com/openai/v1}
+      timeout: ${GROQ_TIMEOUT:20s}
+      max-retries: 0
+      chat:
+        model: ${GROQ_MODEL:openai/gpt-oss-120b}
+        temperature: ${GROQ_TEMPERATURE:0.2}
+        max-completion-tokens: ${GROQ_MAX_COMPLETION_TOKENS:800}
+
+jwt:
+  # Base64 DER X.509 public key shared with user-service.
+  public-key: ${JWT_PUBLIC_KEY_BASE64}
+
+internal:
+  usage-service-token: ${USAGE_SERVICE_INTERNAL_TOKEN}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      groq:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: ${GROQ_CB_WINDOW_SIZE:10}
+        minimum-number-of-calls: ${GROQ_CB_MIN_CALLS:5}
+        failure-rate-threshold: ${GROQ_CB_FAILURE_RATE:50}
+        wait-duration-in-open-state: ${GROQ_CB_OPEN_WAIT:30s}
+        permitted-number-of-calls-in-half-open-state: ${GROQ_CB_HALF_OPEN_CALLS:2}
+        slow-call-duration-threshold: ${GROQ_CB_SLOW_DURATION:15s}
+        slow-call-rate-threshold: ${GROQ_CB_SLOW_RATE:50}
+        record-exceptions:
+          - com.homeenergytracker.insightservice.exception.AiInsightGenerationException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+          - java.lang.NullPointerException
+
+      usageService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: ${USAGE_CB_WINDOW_SIZE:10}
+        minimum-number-of-calls: ${USAGE_CB_MIN_CALLS:5}
+        failure-rate-threshold: ${USAGE_CB_FAILURE_RATE:50}
+        wait-duration-in-open-state: ${USAGE_CB_OPEN_WAIT:20s}
+        permitted-number-of-calls-in-half-open-state: ${USAGE_CB_HALF_OPEN_CALLS:2}
+        slow-call-duration-threshold: ${USAGE_CB_SLOW_DURATION:4s}
+        slow-call-rate-threshold: ${USAGE_CB_SLOW_RATE:50}
+        record-exceptions:
+          - com.homeenergytracker.insightservice.exception.UsageServiceUnavailableException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+          - java.lang.NullPointerException
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+  paths-to-match: /api/v1/**

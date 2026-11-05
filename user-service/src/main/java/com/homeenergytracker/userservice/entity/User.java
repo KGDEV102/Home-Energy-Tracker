@@ -22,6 +22,9 @@ public class User {
    private String lastName;
     @Column(name = "email",nullable = false,unique = true)
     private String email;
+    // Nullable for existing profiles that have not set a password yet.
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
     @Column(nullable = true,columnDefinition = "TEXT")
     private String address;
 

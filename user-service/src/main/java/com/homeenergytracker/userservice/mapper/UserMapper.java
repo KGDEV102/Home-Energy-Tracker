@@ -10,6 +10,7 @@ import org.mapstruct.*;
 )
 public interface UserMapper {
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "createdAt",ignore = true)
     @Mapping(target = "updatedAt",ignore = true)
     User toEntity(UserDto userDto);
@@ -19,6 +20,7 @@ public interface UserMapper {
             nullValuePropertyMappingStrategy =
                     NullValuePropertyMappingStrategy.IGNORE
     )
+    @Mapping(target = "passwordHash", ignore = true)
     void updateEntity(
             UpdateUser request,
             @MappingTarget User user

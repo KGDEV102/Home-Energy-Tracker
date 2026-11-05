@@ -4,10 +4,8 @@ import com.homeenergytracker.common.event.EnergyUsageEvent;
 import com.homeenergytracker.notificationservice.entity.Notification;
 import com.homeenergytracker.notificationservice.entity.NotificationRule;
 import com.homeenergytracker.notificationservice.entity.NotificationType;
-import com.homeenergytracker.notificationservice.event.NotificationCreatedEvent;
 import com.homeenergytracker.notificationservice.repository.NotificationRepository;
 import com.homeenergytracker.notificationservice.repository.NotificationRuleRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,16 +21,13 @@ public class NotificationEvaluationService {
 
     private final NotificationRuleRepository notificationRuleRepository;
     private final NotificationRepository notificationRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     public NotificationEvaluationService(
             NotificationRuleRepository notificationRuleRepository,
-            NotificationRepository notificationRepository,
-            ApplicationEventPublisher eventPublisher
+            NotificationRepository notificationRepository
     ) {
         this.notificationRuleRepository = notificationRuleRepository;
         this.notificationRepository = notificationRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -108,14 +103,10 @@ public class NotificationEvaluationService {
         notification.setTriggerValue(event.averagePowerW());
         notification.setThresholdValue(rule.getThreshold());
         notification.setMeasuredAt(event.measuredAt());
+        notification.setNextAttemptAt(now);
 
-        Notification savedNotification =
-                notificationRepository.save(notification);
+        notificationRepository.save(notification);
         rule.setLastTriggeredAt(now);
-
-        eventPublisher.publishEvent(
-                new NotificationCreatedEvent(savedNotification.getId())
-        );
     }
 
     private String buildPowerThresholdMessage(

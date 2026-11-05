@@ -1,7 +1,6 @@
 package com.homeenergytracker.ingestionservice.simulation;
 
-import com.homeenergytracker.common.response.SuccessResponse;
-import com.homeenergytracker.ingestionservice.client.DeviceServiceClient;
+import com.homeenergytracker.ingestionservice.client.DeviceSimulationTargetGateway;
 import com.homeenergytracker.ingestionservice.dto.DeviceSimulationTargetResponse;
 import com.homeenergytracker.common.event.EnergyUsageEvent;
 import com.homeenergytracker.common.event.ReadingSource;
@@ -26,7 +25,7 @@ public class EnergySimulationJob {
             LoggerFactory.getLogger(EnergySimulationJob.class);
     private static final BigDecimal MILLISECONDS_PER_HOUR =
             BigDecimal.valueOf(3_600_000);
-    private final DeviceServiceClient deviceServiceClient;
+    private final DeviceSimulationTargetGateway deviceTargetGateway;
     private final KafkaTemplate<String, EnergyUsageEvent> kafkaTemplate;
     private final String topic;
     private final long intervalMillis;
@@ -40,13 +39,13 @@ public class EnergySimulationJob {
     private volatile List<DeviceSimulationTargetResponse> devices =
             List.of();
     public EnergySimulationJob(
-            DeviceServiceClient deviceServiceClient,
+            DeviceSimulationTargetGateway deviceTargetGateway,
             KafkaTemplate<String,EnergyUsageEvent> kafkaTemplate,
             @Value("${ingestion.kafka.topic}") String topic,
             @Value("${simulation.interval-ms:5000}") long intervalMillis
 
     ){
-        this.deviceServiceClient = deviceServiceClient;
+        this.deviceTargetGateway = deviceTargetGateway;
         this.kafkaTemplate = kafkaTemplate;
         this.topic = topic;
         this.intervalMillis = intervalMillis;
@@ -57,32 +56,13 @@ public class EnergySimulationJob {
             fixedDelayString = "${simulation.refresh-devices-ms:60000}"
     )
     public void refreshDevices(){
-        try{
-            SuccessResponse<List<DeviceSimulationTargetResponse>> response = deviceServiceClient.getSimulationTargets();
-            if(response == null
-                    || !response.success()
-                    || response.data() == null
-            ){
-                log.warn("Invalid response from device-service");
-                return;
-            }
-            devices = List.copyOf(response.data());
-
+        deviceTargetGateway.loadTargets().ifPresent(targets -> {
+            devices = targets;
             log.info(
                     "Loaded {} devices for simulation",
                     devices.size()
             );
-
-
-        }catch (Exception ex){
-            /*
-             * Nếu device-service đang lỗi, giữ nguyên danh sách cũ.
-             */
-            log.warn(
-                    "Could not refresh devices: {}",
-                    ex.getMessage()
-            );
-        }
+        });
     }
     /*
      * Chạy mỗi 5 giây.

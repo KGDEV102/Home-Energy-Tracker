@@ -64,7 +64,7 @@ class DeviceServiceTest {
         when(deviceMapper.toDeviceResponse(any(Device.class)))
                 .thenReturn(mappedResponse);
 
-        DeviceResponse result = deviceService.createDevice(request);
+        DeviceResponse result = deviceService.createDevice(10L, request);
         ArgumentCaptor<Device> captor =
                 ArgumentCaptor.forClass(Device.class);
 
@@ -107,7 +107,7 @@ class DeviceServiceTest {
         when(deviceMapper.toDeviceResponse(any(Device.class)))
                 .thenReturn(mappedResponse);
 
-        DeviceResponse result = deviceService.createDevice(request);
+        DeviceResponse result = deviceService.createDevice(10L, request);
 
         ArgumentCaptor<Device> captor =
                 ArgumentCaptor.forClass(Device.class);
@@ -144,7 +144,7 @@ class DeviceServiceTest {
                 DeviceStatus.ACTIVE
         );
 
-        deviceService.createDevice(request);
+        deviceService.createDevice(10L, request);
 
         ArgumentCaptor<Device> captor =
                 ArgumentCaptor.forClass(Device.class);
@@ -180,7 +180,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 DeviceModelNotExist.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -211,7 +211,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -242,7 +242,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -272,7 +272,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -302,7 +302,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -324,7 +324,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -347,7 +347,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -370,7 +370,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -394,7 +394,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -425,7 +425,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.createDevice(request)
+                () -> deviceService.createDevice(10L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -443,10 +443,10 @@ class DeviceServiceTest {
         );
         DeviceResponse response = mock(DeviceResponse.class);
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
         when(deviceMapper.toDeviceResponse(device)).thenReturn(response);
 
-        DeviceResponse result = deviceService.updateDevice(1L, request);
+        DeviceResponse result = deviceService.updateDevice(10L, 1L, request);
 
         assertSame(response, result);
         verify(deviceMapper).updateEntity(request, device);
@@ -468,10 +468,10 @@ class DeviceServiceTest {
         );
         DeviceResponse response = mock(DeviceResponse.class);
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
         when(deviceMapper.toDeviceResponse(device)).thenReturn(response);
 
-        DeviceResponse result = deviceService.updateDevice(1L, request);
+        DeviceResponse result = deviceService.updateDevice(10L, 1L, request);
 
         assertEquals("New manufacturer", device.getCustomManufacturer());
         assertEquals("New model", device.getCustomModelName());
@@ -500,10 +500,10 @@ class DeviceServiceTest {
                 null, null, null, 2L, null, null, null, null
         );
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
         when(deviceModelRepository.findById(2L)).thenReturn(Optional.of(model));
 
-        deviceService.updateDevice(1L, request);
+        deviceService.updateDevice(10L, 1L, request);
 
         assertSame(model, device.getModel());
         assertEquals(DeviceType.AIR_CONDITIONER, device.getType());
@@ -519,11 +519,11 @@ class DeviceServiceTest {
                 null, null, null, null, "Name", null, null, null
         );
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.empty());
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.empty());
 
         assertThrows(
                 DeviceNotExist.class,
-                () -> deviceService.updateDevice(1L, request)
+                () -> deviceService.updateDevice(10L, 1L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -534,7 +534,7 @@ class DeviceServiceTest {
     void updateDevice_shouldThrowWhenModelDoesNotExist() {
         Device device = new Device();
         device.setId(1L);
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
         when(deviceModelRepository.findById(2L)).thenReturn(Optional.empty());
 
         UpdateDevice request = new UpdateDevice(
@@ -543,7 +543,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 DeviceModelNotExist.class,
-                () -> deviceService.updateDevice(1L, request)
+                () -> deviceService.updateDevice(10L, 1L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -559,7 +559,7 @@ class DeviceServiceTest {
         model.setType(DeviceType.CAMERA);
         model.setStatus(DeviceModelStatus.DISCONTINUED);
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
         when(deviceModelRepository.findById(2L)).thenReturn(Optional.of(model));
 
         UpdateDevice request = new UpdateDevice(
@@ -568,7 +568,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.updateDevice(1L, request)
+                () -> deviceService.updateDevice(10L, 1L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -578,7 +578,7 @@ class DeviceServiceTest {
     void updateDevice_shouldRejectCustomFieldsWithModelId() {
         Device device = new Device();
         device.setId(1L);
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
 
         UpdateDevice request = new UpdateDevice(
                 "Custom manufacturer", null, null, 2L, null, null, null, null
@@ -586,7 +586,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.updateDevice(1L, request)
+                () -> deviceService.updateDevice(10L, 1L, request)
         );
 
         verifyNoInteractions(deviceModelRepository);
@@ -598,7 +598,7 @@ class DeviceServiceTest {
         Device device = new Device();
         device.setId(1L);
         device.setModel(new DeviceModel());
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
 
         UpdateDevice request = new UpdateDevice(
                 null, "Custom model", null, null, null, null, null, null
@@ -606,7 +606,7 @@ class DeviceServiceTest {
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.updateDevice(1L, request)
+                () -> deviceService.updateDevice(10L, 1L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -627,9 +627,9 @@ class DeviceServiceTest {
                 null, null, null, null, null, null, null, null
         );
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
 
-        deviceService.updateDevice(1L, request);
+        deviceService.updateDevice(10L, 1L, request);
 
         assertEquals("Manufacturer", device.getCustomManufacturer());
         assertEquals("Model", device.getCustomModelName());
@@ -658,12 +658,12 @@ class DeviceServiceTest {
                 null
         );
 
-        when(deviceRepository.findById(1L))
+        when(deviceRepository.findByIdAndUserId(1L, 10L))
                 .thenReturn(Optional.of(device));
 
         assertThrows(
                 InvalidDeviceRequestException.class,
-                () -> deviceService.updateDevice(1L, request)
+                () -> deviceService.updateDevice(10L, 1L, request)
         );
 
         verify(deviceRepository, never()).save(any(Device.class));
@@ -701,20 +701,20 @@ class DeviceServiceTest {
         device.setId(1L);
         DeviceResponse response = mock(DeviceResponse.class);
 
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
         when(deviceMapper.toDeviceResponse(device)).thenReturn(response);
 
-        assertSame(response, deviceService.getById(1L));
+        assertSame(response, deviceService.getById(10L, 1L));
         verify(deviceMapper).toDeviceResponse(device);
     }
 
     @Test
     void getById_shouldThrowWhenDeviceDoesNotExist() {
-        when(deviceRepository.findById(1L)).thenReturn(Optional.empty());
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.empty());
 
         assertThrows(
                 DeviceNotExist.class,
-                () -> deviceService.getById(1L)
+                () -> deviceService.getById(10L, 1L)
         );
 
         verify(deviceMapper, never()).toDeviceResponse(any(Device.class));
@@ -778,23 +778,23 @@ class DeviceServiceTest {
     void deleteDevice_shouldDeleteWhenDeviceExists() {
         Device device = new Device();
         device.setId(1L);
-        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(device));
 
-        deviceService.deleteDevice(1L);
+        deviceService.deleteDevice(10L, 1L);
 
-        verify(deviceRepository).deleteById(1L);
+        verify(deviceRepository).delete(device);
     }
 
     @Test
     void deleteDevice_shouldThrowWhenDeviceDoesNotExist() {
-        when(deviceRepository.findById(1L)).thenReturn(Optional.empty());
+        when(deviceRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.empty());
 
         assertThrows(
                 DeviceNotExist.class,
-                () -> deviceService.deleteDevice(1L)
+                () -> deviceService.deleteDevice(10L, 1L)
         );
 
-        verify(deviceRepository, never()).deleteById(anyLong());
+        verify(deviceRepository, never()).delete(any(Device.class));
     }
 
 }

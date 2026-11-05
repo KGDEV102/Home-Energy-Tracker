@@ -1,6 +1,8 @@
 server:
   port: ${SERVER_PORT:8082}
 spring:
+  config:
+    import: optional:file:device-service/.env[.properties],optional:file:.env[.properties]
   application:
     name: device-service
   datasource:
@@ -19,3 +21,17 @@ spring:
   flyway:
     enabled: true
     location: classpath:db/migration
+
+jwt:
+  public-key: ${JWT_PUBLIC_KEY_BASE64}
+
+internal:
+  service-token: ${DEVICE_SERVICE_INTERNAL_TOKEN}
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+  paths-to-match: /api/v1/**

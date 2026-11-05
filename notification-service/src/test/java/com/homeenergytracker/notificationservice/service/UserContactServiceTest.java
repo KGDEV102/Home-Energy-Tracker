@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class UserContactServiceTest {
     private static final Long USER_ID = 1L;
+    private static final String INTERNAL_TOKEN = "test-internal-token";
 
     @Mock
     private UserServiceClient userServiceClient;
@@ -26,7 +27,20 @@ class UserContactServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserContactService(userServiceClient);
+        service = new UserContactService(userServiceClient, INTERNAL_TOKEN);
+    }
+
+    @Test
+    void shouldRejectBlankInternalToken() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> new UserContactService(userServiceClient, " ")
+        );
+
+        assertEquals(
+                "internal.user-service-token must not be blank",
+                exception.getMessage()
+        );
     }
 
     @Test
@@ -37,19 +51,19 @@ class UserContactServiceTest {
                         "user@example.com"
                 );
 
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, INTERNAL_TOKEN))
                 .thenReturn(SuccessResponse.of(contact));
 
         UserNotificationContactResponse result =
                 service.getNotificationContact(USER_ID);
 
         assertSame(contact, result);
-        verify(userServiceClient).getNotificationContact(USER_ID);
+        verify(userServiceClient).getNotificationContact(USER_ID, INTERNAL_TOKEN);
     }
 
     @Test
     void shouldRejectNullResponse() {
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, INTERNAL_TOKEN))
                 .thenReturn(null);
 
         assertInvalidContactResponse();
@@ -63,7 +77,7 @@ class UserContactServiceTest {
                         "user@example.com"
                 );
 
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, INTERNAL_TOKEN))
                 .thenReturn(new SuccessResponse<>(
                         false,
                         contact,
@@ -75,7 +89,7 @@ class UserContactServiceTest {
 
     @Test
     void shouldRejectResponseWithoutData() {
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, INTERNAL_TOKEN))
                 .thenReturn(new SuccessResponse<>(
                         true,
                         null,
@@ -104,7 +118,7 @@ class UserContactServiceTest {
         UserNotificationContactResponse contact =
                 new UserNotificationContactResponse(USER_ID, email);
 
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, INTERNAL_TOKEN))
                 .thenReturn(SuccessResponse.of(contact));
 
         assertInvalidContactResponse();
@@ -118,7 +132,7 @@ class UserContactServiceTest {
                         "other@example.com"
                 );
 
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, INTERNAL_TOKEN))
                 .thenReturn(SuccessResponse.of(contact));
 
         assertInvalidContactResponse();
@@ -134,6 +148,6 @@ class UserContactServiceTest {
                 "Could not load notification contact for user 1",
                 exception.getMessage()
         );
-        verify(userServiceClient).getNotificationContact(USER_ID);
+        verify(userServiceClient).getNotificationContact(USER_ID, INTERNAL_TOKEN);
     }
 }

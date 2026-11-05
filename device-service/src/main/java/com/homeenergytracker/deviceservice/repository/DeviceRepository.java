@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface DeviceRepository extends JpaRepository<Device,Long> {
     Optional<List<Device>> findAllByUserId(Long userId);
     @EntityGraph(attributePaths = "model")
+    Optional<Device> findByIdAndUserId(Long id, Long userId);
+    @EntityGraph(attributePaths = "model")
     Page<Device>  findAllByUserIdAndStatus(Long userId, DeviceStatus status, Pageable pageable);
     @EntityGraph(attributePaths = "model")
     List<Device> findAllByStatus(DeviceStatus status);

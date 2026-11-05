@@ -41,7 +41,8 @@ import static org.mockito.Mockito.when;
         "simulation.job-initial-delay-ms=3600000",
 
         "simulation.interval-ms=5000",
-        "ingestion.kafka.topic=energy-usage.v1"
+        "ingestion.kafka.topic=energy-usage.v1",
+        "device-service.internal-token=test-internal-token"
 })
 @EmbeddedKafka(
         partitions = 1,
@@ -130,7 +131,7 @@ public class EnergySimulationKafkaInteractionTest {
                         ratedPowerW
                 );
 
-        when(deviceServiceClient.getSimulationTargets())
+        when(deviceServiceClient.getSimulationTargets("test-internal-token"))
                 .thenReturn(com.homeenergytracker.common.response.SuccessResponse.of(List.of(device)));
 
         // Act

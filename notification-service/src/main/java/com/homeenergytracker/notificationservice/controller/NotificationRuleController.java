@@ -4,7 +4,7 @@ import com.homeenergytracker.notificationservice.dto.CreateNotificationRule;
 import com.homeenergytracker.notificationservice.dto.PageResponse;
 import com.homeenergytracker.notificationservice.dto.UpdateNotificationRule;
 import com.homeenergytracker.notificationservice.entity.NotificationRule;
-import com.homeenergytracker.notificationservice.security.JwtUserIdExtractor;
+import com.homeenergytracker.common.security.JwtUserIdExtractor;
 import com.homeenergytracker.notificationservice.service.NotificationRuleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,6 @@ import com.homeenergytracker.common.response.SuccessResponse;
 @RequiredArgsConstructor
 public class NotificationRuleController {
     private final NotificationRuleService notificationRuleService;
-    private final JwtUserIdExtractor jwtUserIdExtractor;
 
     @GetMapping
     public SuccessResponse<PageResponse<NotificationRule>> findAllNotificationRuleOfUser(
@@ -26,7 +25,7 @@ public class NotificationRuleController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
         return SuccessResponse.of(
                 notificationRuleService.getAllNotificationRules(userId, page, size)
         );
@@ -37,7 +36,7 @@ public class NotificationRuleController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
         return SuccessResponse.of(
                 notificationRuleService.getNotificationRule(id, userId)
         );
@@ -48,7 +47,7 @@ public class NotificationRuleController {
             @Valid @RequestBody CreateNotificationRule notificationRule,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
         return SuccessResponse.of(
                 notificationRuleService.createNotificationRule(notificationRule, userId)
         );
@@ -60,7 +59,7 @@ public class NotificationRuleController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
         return SuccessResponse.of(
                 notificationRuleService.updateNotificationRule(notificationRule, id, userId)
         );
@@ -71,7 +70,7 @@ public class NotificationRuleController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long userId = jwtUserIdExtractor.extract(jwt);
+        Long userId = JwtUserIdExtractor.extract(jwt);
         notificationRuleService.deleteNotificationRule(id, userId);
         return SuccessResponse.of(
                 null,

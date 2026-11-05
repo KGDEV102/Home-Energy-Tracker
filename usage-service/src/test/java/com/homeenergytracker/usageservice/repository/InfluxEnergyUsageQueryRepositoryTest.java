@@ -86,6 +86,7 @@ class InfluxEnergyUsageQueryRepositoryTest {
         assertThat(queryCaptor.getValue())
                 .contains("from(bucket: \"" + BUCKET + "\")")
                 .contains("r[\"user_id\"] == \"" + USER_ID + "\"")
+                .contains("|> group(columns: [\"device_uid\"])")
                 .contains(FROM.toString())
                 .contains(TO.toString());
     }
@@ -192,6 +193,7 @@ class InfluxEnergyUsageQueryRepositoryTest {
         verify(queryApi).query(queryCaptor.capture(), eq(ORG));
         assertThat(queryCaptor.getValue())
                 .contains("r[\"device_uid\"] == \"" + FIRST_DEVICE_UID + "\"")
+                .contains("|> group()")
                 .contains("every: 1h");
     }
 

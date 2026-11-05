@@ -33,11 +33,11 @@ public class DeviceService {
         this.deviceRepository = deviceRepository;
         this.deviceModelRepository = deviceModelRepository;
     }
-    public DeviceResponse createDevice(CreateDevice request){
+    public DeviceResponse createDevice(Long userId, CreateDevice request){
         Device device = new Device();
 
 
-        device.setUserId(request.userId());
+        device.setUserId(userId);
         device.setName(request.name());
         device.setType(request.type());
         device.setLocation(request.location());
@@ -86,8 +86,8 @@ public class DeviceService {
         return deviceMapper.toDeviceResponse(device);
     }
     @Transactional
-    public DeviceResponse updateDevice(Long id, UpdateDevice request){
-        Device device = deviceRepository.findById(id).orElseThrow(DeviceNotExist::new);
+    public DeviceResponse updateDevice(Long userId, Long id, UpdateDevice request){
+        Device device = findOwnedDevice(id, userId);
         if (request.modelId() != null) {
             // Chuyển sang hoặc thay đổi catalog model
             if (request.customModelName() != null
@@ -158,8 +158,8 @@ public class DeviceService {
 
     }
     @Transactional(readOnly = true)
-    public DeviceResponse getById(Long id) {
-        Device device = deviceRepository.findById(id).orElseThrow(DeviceNotExist::new);
+    public DeviceResponse getById(Long userId, Long id) {
+        Device device = findOwnedDevice(id, userId);
         return deviceMapper.toDeviceResponse(device);
     }
     public PageResponse<DeviceResponse> getAllDevicesOfUser(Long userId, DeviceStatus status, Integer page, Integer size) {
@@ -199,9 +199,14 @@ public class DeviceService {
     }
 
 
-    public void  deleteDevice(Long id){
-        deviceRepository.findById(id).orElseThrow(DeviceNotExist::new);
-        deviceRepository.deleteById(id);
+    public void deleteDevice(Long userId, Long id){
+        Device device = findOwnedDevice(id, userId);
+        deviceRepository.delete(device);
+    }
+
+    private Device findOwnedDevice(Long id, Long userId) {
+        return deviceRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(DeviceNotExist::new);
     }
     private int normalizePage(int page) {
         return Math.max(page, 0);

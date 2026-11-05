@@ -5,6 +5,7 @@ import com.homeenergytracker.deviceservice.dto.SliceResponse;
 import com.homeenergytracker.deviceservice.entity.DeviceModel;
 import com.homeenergytracker.deviceservice.entity.DeviceType;
 import com.homeenergytracker.deviceservice.service.DeviceModelService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
@@ -24,6 +25,7 @@ public class DeviceModelController {
         this.deviceModelService = deviceModelService;
     }
     @GetMapping
+    @Operation(security = {})
     public SuccessResponse<SliceResponse<DeviceModelDto>> searchModels(
             @RequestParam(required = false)
             @Size(

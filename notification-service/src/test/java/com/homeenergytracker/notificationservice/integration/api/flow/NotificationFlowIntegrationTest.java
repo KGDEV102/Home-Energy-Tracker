@@ -34,6 +34,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +50,8 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(properties = {
         "notification.kafka.energy-usage-topic=energy-usage.notification-flow-test",
         "spring.kafka.consumer.group-id=notification-flow-test",
+        "internal.user-service-token=test-internal-token",
+        "notification.delivery.poll-delay-ms=100",
         "spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer",
         "spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JacksonJsonSerializer"
 })
@@ -128,7 +131,7 @@ public class NotificationFlowIntegrationTest {
         notificationRepository.deleteAll();
         ruleRepository.deleteAll();
 
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, "test-internal-token"))
                 .thenReturn(
                         SuccessResponse.of(
                                 new UserNotificationContactResponse(
@@ -198,7 +201,7 @@ public class NotificationFlowIntegrationTest {
                 );
 
         verify(userServiceClient, never())
-                .getNotificationContact(USER_ID);
+                .getNotificationContact(USER_ID, "test-internal-token");
     }
     @Test
     void shouldCreateNotificationAndSendEmailWhenThresholdExceeded()
@@ -320,7 +323,8 @@ public class NotificationFlowIntegrationTest {
                 deviceUid,
                 new BigDecimal("1000.000")
         );
-        Instant previousTriggeredAt = Instant.now();
+        Instant previousTriggeredAt = Instant.now()
+                .truncatedTo(ChronoUnit.MICROS);
         rule.setLastTriggeredAt(previousTriggeredAt);
         ruleRepository.saveAndFlush(rule);
 
@@ -404,7 +408,7 @@ public class NotificationFlowIntegrationTest {
                 deviceUid,
                 new BigDecimal("1000.000")
         );
-        when(userServiceClient.getNotificationContact(USER_ID))
+        when(userServiceClient.getNotificationContact(USER_ID, "test-internal-token"))
                 .thenReturn(null);
 
         EnergyUsageEvent event = eventWithPower(

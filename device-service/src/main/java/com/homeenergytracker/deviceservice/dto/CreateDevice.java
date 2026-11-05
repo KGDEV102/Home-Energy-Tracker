@@ -38,8 +38,7 @@ public record CreateDevice(
         BigDecimal customRatedPowerW,
         @Positive(message = "model_id must be positive")
         Long modelId,
-        @NotNull(message = "user_id is required")
-        @Positive(message = "user_id must be positive")
+        // Kept for backward-compatible JSON only. The server always uses JWT subject as owner.
         Long userId,
         @NotBlank(message = "name is required")
         @Size(

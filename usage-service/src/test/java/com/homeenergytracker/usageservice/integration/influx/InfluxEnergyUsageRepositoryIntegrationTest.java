@@ -79,15 +79,12 @@ class InfluxEnergyUsageRepositoryIntegrationTest {
                 .collect(Collectors.toMap(FluxRecord::getField, Function.identity()));
 
         assertThat(recordsByField).containsKeys(
-                "event_id",
                 "schema_version",
                 "average_power_w",
                 "interval_energy_wh",
                 "received_at"
         );
 
-        assertThat(recordsByField.get("event_id").getValue())
-                .isEqualTo(event.eventId().toString());
         assertThat(recordsByField.get("schema_version").getValue())
                 .isEqualTo((long) event.schemaVersion());
         assertThat(((Number) recordsByField.get("average_power_w").getValue()).doubleValue())
@@ -97,15 +94,17 @@ class InfluxEnergyUsageRepositoryIntegrationTest {
         assertThat(recordsByField.get("received_at").getValue())
                 .isEqualTo(event.receivedAt().toString());
 
-        FluxRecord eventIdRecord = recordsByField.get("event_id");
-        assertThat(eventIdRecord.getTime()).isEqualTo(event.measuredAt());
-        assertThat(eventIdRecord.getValueByKey("device_uid"))
+        FluxRecord representativeRecord = recordsByField.get("interval_energy_wh");
+        assertThat(representativeRecord.getTime()).isEqualTo(event.measuredAt());
+        assertThat(representativeRecord.getValueByKey("event_id"))
+                .isEqualTo(event.eventId().toString());
+        assertThat(representativeRecord.getValueByKey("device_uid"))
                 .isEqualTo(event.deviceUid().toString());
-        assertThat(eventIdRecord.getValueByKey("user_id"))
+        assertThat(representativeRecord.getValueByKey("user_id"))
                 .isEqualTo(event.userId().toString());
-        assertThat(eventIdRecord.getValueByKey("device_type"))
+        assertThat(representativeRecord.getValueByKey("device_type"))
                 .isEqualTo(event.deviceType());
-        assertThat(eventIdRecord.getValueByKey("source"))
+        assertThat(representativeRecord.getValueByKey("source"))
                 .isEqualTo(event.source().name());
     }
 
@@ -116,14 +115,39 @@ class InfluxEnergyUsageRepositoryIntegrationTest {
         repository.save(event);
         repository.save(event);
 
-        List<FluxRecord> eventIdRecords = queryRecords(event.deviceUid(), "event_id");
+        List<FluxRecord> eventRecords = queryRecords(event.deviceUid(), "interval_energy_wh");
 
-        assertThat(eventIdRecords)
+        assertThat(eventRecords)
                 .singleElement()
                 .satisfies(record -> {
-                    assertThat(record.getValue()).isEqualTo(event.eventId().toString());
+                    assertThat(record.getValueByKey("event_id"))
+                            .isEqualTo(event.eventId().toString());
                     assertThat(record.getTime()).isEqualTo(event.measuredAt());
                 });
+    }
+
+    @Test
+    void shouldKeepDifferentEventsAtTheSameTimestamp() {
+        UUID deviceUid = UUID.randomUUID();
+        Instant measuredAt = Instant.parse("2026-09-26T03:00:00Z");
+        EnergyUsageEvent firstEvent = eventAt(deviceUid, measuredAt);
+        EnergyUsageEvent secondEvent = eventAt(deviceUid, measuredAt);
+
+        repository.save(firstEvent);
+        repository.save(secondEvent);
+
+        List<FluxRecord> eventRecords = queryRecords(deviceUid, "interval_energy_wh");
+
+        assertThat(eventRecords)
+                .hasSize(2)
+                .extracting(record -> record.getValueByKey("event_id"))
+                .containsExactlyInAnyOrder(
+                        firstEvent.eventId().toString(),
+                        secondEvent.eventId().toString()
+                );
+        assertThat(eventRecords)
+                .extracting(FluxRecord::getTime)
+                .containsOnly(measuredAt);
     }
 
     @Test
@@ -136,16 +160,16 @@ class InfluxEnergyUsageRepositoryIntegrationTest {
         repository.save(firstEvent);
         repository.save(secondEvent);
 
-        List<FluxRecord> eventIdRecords = queryRecords(deviceUid, "event_id");
+        List<FluxRecord> eventRecords = queryRecords(deviceUid, "interval_energy_wh");
 
-        assertThat(eventIdRecords)
+        assertThat(eventRecords)
                 .hasSize(2)
-                .extracting(FluxRecord::getValue)
+                .extracting(record -> record.getValueByKey("event_id"))
                 .containsExactlyInAnyOrder(
                         firstEvent.eventId().toString(),
                         secondEvent.eventId().toString()
                 );
-        assertThat(eventIdRecords)
+        assertThat(eventRecords)
                 .extracting(FluxRecord::getTime)
                 .containsExactlyInAnyOrder(
                         firstEvent.measuredAt(),
@@ -163,20 +187,22 @@ class InfluxEnergyUsageRepositoryIntegrationTest {
         repository.save(firstDeviceEvent);
         repository.save(secondDeviceEvent);
 
-        List<FluxRecord> firstDeviceRecords = queryRecords(firstDeviceUid, "event_id");
-        List<FluxRecord> secondDeviceRecords = queryRecords(secondDeviceUid, "event_id");
+        List<FluxRecord> firstDeviceRecords = queryRecords(firstDeviceUid, "interval_energy_wh");
+        List<FluxRecord> secondDeviceRecords = queryRecords(secondDeviceUid, "interval_energy_wh");
 
         assertThat(firstDeviceRecords)
                 .singleElement()
                 .satisfies(record -> {
-                    assertThat(record.getValue()).isEqualTo(firstDeviceEvent.eventId().toString());
+                    assertThat(record.getValueByKey("event_id"))
+                            .isEqualTo(firstDeviceEvent.eventId().toString());
                     assertThat(record.getValueByKey("device_uid"))
                             .isEqualTo(firstDeviceUid.toString());
                 });
         assertThat(secondDeviceRecords)
                 .singleElement()
                 .satisfies(record -> {
-                    assertThat(record.getValue()).isEqualTo(secondDeviceEvent.eventId().toString());
+                    assertThat(record.getValueByKey("event_id"))
+                            .isEqualTo(secondDeviceEvent.eventId().toString());
                     assertThat(record.getValueByKey("device_uid"))
                             .isEqualTo(secondDeviceUid.toString());
                 });

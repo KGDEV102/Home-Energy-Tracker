@@ -2,34 +2,46 @@ package com.homeenergytracker.userservice.controller;
 
 import com.homeenergytracker.userservice.dto.UpdateUser;
 import com.homeenergytracker.userservice.dto.UserDto;
-import com.homeenergytracker.userservice.entity.User;
 import com.homeenergytracker.userservice.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.*;
 import com.homeenergytracker.common.response.SuccessResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
+
     UserController(UserService userService) {
         this.userService = userService;
     }
-    @PostMapping
-    public SuccessResponse<UserDto> createUser(@Valid @RequestBody UserDto userDto){
-        return SuccessResponse.of( userService.createUser(userDto));
-    }
-    @PatchMapping("/{id}")
-    public SuccessResponse<UserDto> updateUser(@Valid @RequestBody UpdateUser updateUser, @PathVariable Long id){
-        return SuccessResponse.of(userService.updateUser(id,updateUser));
-    }
-    @GetMapping("/{id}")
-    public SuccessResponse<UserDto> getUser(@PathVariable Long id){
-        return SuccessResponse.of(userService.getUserById(id));
-    }
-    @DeleteMapping("/{id}")
-    public SuccessResponse<?> deleteUser(@PathVariable Long id){
-        userService.deleteUserById(id);
-        return SuccessResponse.of();
+
+    @PatchMapping("/me")
+    public SuccessResponse<UserDto> updateCurrentUser(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody UpdateUser updateUser
+    ) {
+        return SuccessResponse.of(userService.updateUser(userId, updateUser));
     }
 
+    @GetMapping("/me")
+    public SuccessResponse<UserDto> getCurrentUser(
+            @AuthenticationPrincipal Long userId
+    ) {
+        return SuccessResponse.of(userService.getUserById(userId));
+    }
+
+    @DeleteMapping("/me")
+    public SuccessResponse<?> deleteCurrentUser(
+            @AuthenticationPrincipal Long userId
+    ) {
+        userService.deleteUserById(userId);
+        return SuccessResponse.of();
+    }
 }

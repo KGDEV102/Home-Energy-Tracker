@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
         "spring.kafka.listener.auto-startup=false",
-        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost/test-issuer"
+        "internal.usage-service-token=test-internal-token"
 })
 @AutoConfigureMockMvc
 class UsageApiIntegrationTest {

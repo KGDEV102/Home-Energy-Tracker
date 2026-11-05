@@ -124,13 +124,13 @@ public class InfluxEnergyUsageRepositoryTest {
                 .containsEntry(
                         "source",
                         "SIMULATOR"
-                );
-
-        assertThat(point.getFields())
+                )
                 .containsEntry(
                         "event_id",
                         EVENT_ID.toString()
-                )
+                );
+
+        assertThat(point.getFields())
                 .containsEntry(
                         "schema_version",
                         1L
@@ -146,7 +146,8 @@ public class InfluxEnergyUsageRepositoryTest {
                 .containsEntry(
                         "received_at",
                         MEASURED_AT.plusSeconds(1).toString()
-                );
+                )
+                .doesNotContainKey("event_id");
 
         assertThat(point.getPrecision())
                 .isEqualTo(WritePrecision.NS);

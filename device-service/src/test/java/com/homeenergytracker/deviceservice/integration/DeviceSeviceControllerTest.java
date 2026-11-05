@@ -13,7 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -29,11 +35,25 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
-@Testcontainers
-@SpringBootTest
+@Testcontainers(disabledWithoutDocker = true)
+@SpringBootTest(properties = "internal.service-token=test-internal-token")
 @AutoConfigureMockMvc
+@Import(DeviceSeviceControllerTest.MockJwtConfiguration.class)
 public class DeviceSeviceControllerTest {
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
+    @TestConfiguration
+    static class MockJwtConfiguration {
+        @Bean
+        MockMvcBuilderCustomizer authenticatedRequestsByDefault() {
+            return builder -> builder.defaultRequest(
+                    get("/").with(jwt().jwt(token -> token.subject("10")))
+            );
+        }
+    }
     @Container
     @ServiceConnection
     static PostgreSQLContainer postgres =
@@ -306,7 +326,7 @@ public class DeviceSeviceControllerTest {
     }
 
     @Test
-    void createDevice_shouldReturnBadRequestWhenUserIdIsInvalid()
+    void createDevice_shouldIgnoreSpoofedUserIdAndUseJwtSubject()
             throws Exception {
 
         String requestBody = """
@@ -323,12 +343,11 @@ public class DeviceSeviceControllerTest {
         mockMvc.perform(post("/api/v1/device")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code")
-                        .value("VALIDATION_FAILED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.userId").value(10));
 
-        assertEquals(0, deviceRepository.count());
+        assertEquals(10L, deviceRepository.findAll().getFirst().getUserId());
     }
 
     @Test
@@ -606,6 +625,25 @@ public class DeviceSeviceControllerTest {
     }
 
     @Test
+    void updateDevice_shouldHideAnotherUsersDevice() throws Exception {
+        Device anotherUsersDevice = persistCustomDevice();
+        anotherUsersDevice.setUserId(20L);
+        anotherUsersDevice = deviceRepository.saveAndFlush(anotherUsersDevice);
+
+        mockMvc.perform(patch("/api/v1/device/{id}", anotherUsersDevice.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"name": "Compromised name"}
+                            """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("DEVICE_NOT_EXIST"));
+
+        assertEquals("Bedroom AC", deviceRepository.findById(anotherUsersDevice.getId())
+                .orElseThrow()
+                .getName());
+    }
+
+    @Test
     void updateDevice_shouldReturnNotFoundWhenModelDoesNotExist()
             throws Exception {
 
@@ -674,6 +712,17 @@ public class DeviceSeviceControllerTest {
     }
 
     @Test
+    void getDevice_shouldHideAnotherUsersDevice() throws Exception {
+        Device anotherUsersDevice = persistCustomDevice();
+        anotherUsersDevice.setUserId(20L);
+        anotherUsersDevice = deviceRepository.saveAndFlush(anotherUsersDevice);
+
+        mockMvc.perform(get("/api/v1/device/{id}", anotherUsersDevice.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("DEVICE_NOT_EXIST"));
+    }
+
+    @Test
     void getAllDevices_shouldFilterByUserAndStatusAndPaginate()
             throws Exception {
 
@@ -737,18 +786,27 @@ public class DeviceSeviceControllerTest {
     }
 
     @Test
-    void getAllDevices_shouldReturnBadRequestForInvalidUserId()
+    void getAllDevices_shouldIgnoreClientUserIdAndUseJwtSubject()
             throws Exception {
 
+        persistCustomDevice();
+
+        Device anotherUser = new Device();
+        anotherUser.setUserId(20L);
+        anotherUser.setName("Other user's device");
+        anotherUser.setType(DeviceType.OTHER);
+        anotherUser.setCustomModelName("Other custom");
+        anotherUser.setStatus(DeviceStatus.ACTIVE);
+        deviceRepository.saveAndFlush(anotherUser);
+
         mockMvc.perform(get("/api/v1/device")
-                        .param("userId", "0")
+                        .param("userId", "20")
                         .param("deviceStatus", "ACTIVE")
                         .param("page", "0")
                         .param("size", "10"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code")
-                        .value("VALIDATION_FAILED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(1))
+                .andExpect(jsonPath("$.data.items[0].userId").value(10));
     }
 
     @Test
@@ -778,18 +836,45 @@ public class DeviceSeviceControllerTest {
     }
 
     @Test
+    void deleteDevice_shouldHideAndPreserveAnotherUsersDevice() throws Exception {
+        Device anotherUsersDevice = persistCustomDevice();
+        anotherUsersDevice.setUserId(20L);
+        anotherUsersDevice = deviceRepository.saveAndFlush(anotherUsersDevice);
+
+        mockMvc.perform(delete("/api/v1/device/{id}", anotherUsersDevice.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("DEVICE_NOT_EXIST"));
+
+        assertTrue(deviceRepository.existsById(anotherUsersDevice.getId()));
+    }
+
+    @Test
     void getSimulationTargets_shouldReturnCustomRatedPower()
             throws Exception {
 
         Device device = persistCustomDevice();
 
-        mockMvc.perform(get("/internal/v1/devices/simulation-targets"))
+        mockMvc.perform(get("/internal/v1/devices/simulation-targets")
+                        .header("X-Internal-Service-Token", "test-internal-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].deviceUid")
                         .value(device.getDeviceUid().toString()))
                 .andExpect(jsonPath("$.data[0].ratedPowerW")
                         .value(1200.000));
+    }
+
+    @Test
+    void getSimulationTargets_shouldRejectMissingServiceToken() throws Exception {
+        mockMvc.perform(get("/internal/v1/devices/simulation-targets"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getSimulationTargets_shouldRejectWrongServiceToken() throws Exception {
+        mockMvc.perform(get("/internal/v1/devices/simulation-targets")
+                        .header("X-Internal-Service-Token", "wrong-token"))
+                .andExpect(status().isUnauthorized());
     }
 
     private Device persistCustomDevice() {
